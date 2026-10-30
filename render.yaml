@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: word-meet
+    runtime: node
+    # free 档闲置 15 分钟会休眠,休眠/重启会丢失内存中的房间;长期运行请改成 starter
+    plan: free
+    # 房间状态在内存里,只能单实例,不要开多实例
+    numInstances: 1
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: 22

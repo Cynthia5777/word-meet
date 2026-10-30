@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>同词相遇</title>
+<style>
+:root{
+  --bg:#fbf6ee; --card:#ffffff; --ink:#2b2433; --muted:#7d7589; --line:#eadfd0;
+  --a:#ff6b6b; --b:#4d96ff; --ok:#2fbf71; --warn:#f5a524; --accent:#7c5cff;
+  --shadow:0 8px 30px rgba(60,40,90,.08);
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#17141c; --card:#221e2b; --ink:#f1ecf7; --muted:#a39bb3; --line:#352f42; --shadow:0 8px 30px rgba(0,0,0,.35)}
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.55 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;min-height:100vh}
+body::before{content:"";position:fixed;inset:0;z-index:-1;
+  background:radial-gradient(600px 400px at 10% -10%,rgba(255,107,107,.18),transparent),
+             radial-gradient(600px 400px at 100% 0%,rgba(77,150,255,.18),transparent)}
+main{max-width:640px;margin:0 auto;padding:20px 16px 60px}
+h1{font-size:34px;margin:8px 0 2px;letter-spacing:2px}
+h1 .x{display:inline-block;margin:0 .15em;color:var(--accent)}
+.sub{color:var(--muted);margin:0 0 20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:var(--shadow);margin-bottom:14px}
+label{font-size:13px;color:var(--muted);display:block;margin-bottom:6px}
+input[type=text]{width:100%;font:inherit;padding:12px 14px;border-radius:12px;border:2px solid var(--line);background:transparent;color:var(--ink);outline:none;transition:border .15s}
+input[type=text]:focus{border-color:var(--accent)}
+button{font:inherit;cursor:pointer;border:0;border-radius:12px;padding:12px 18px;font-weight:600;color:#fff;background:var(--accent);transition:transform .08s,opacity .15s}
+button:active{transform:scale(.97)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.ghost{background:transparent;color:var(--ink);border:2px solid var(--line)}
+button.ok{background:var(--ok)}
+button.warn{background:var(--warn);color:#3a2800}
+button.small{padding:6px 12px;font-size:13px;border-radius:9px}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.row>*{flex:1}
+.sep{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px;margin:14px 0}
+.sep::before,.sep::after{content:"";flex:1;height:1px;background:var(--line)}
+.rules{color:var(--muted);font-size:14px;padding-left:1.2em;margin:0}
+.rules li{margin:4px 0}
+[hidden]{display:none!important}
+
+.bar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.pill{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:14px}
+.code{font-size:44px;font-weight:800;letter-spacing:10px;text-align:center;color:var(--accent);margin:4px 0}
+.players{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 2px}
+.pl{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;border:2px solid var(--line);font-size:14px;background:var(--card)}
+.pl .dot{width:8px;height:8px;border-radius:50%;background:var(--ok)}
+.pl.off{opacity:.5}.pl.off .dot{background:var(--muted)}
+.pl.me{border-color:var(--accent)}
+.pl .st{font-size:12px;color:var(--muted)}
+.pl .st.good{color:var(--ok);font-weight:700}
+
+.stage{text-align:center;min-height:250px;display:flex;flex-direction:column;justify-content:center;gap:12px}
+.hint{color:var(--muted);font-size:15px}
+.chips{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.chip{padding:4px 14px;border-radius:999px;font-weight:700;font-size:18px;background:rgba(124,92,255,.12);color:var(--accent)}
+.timer{height:6px;border-radius:6px;background:var(--line);overflow:hidden}
+.timer i{display:block;height:100%;width:100%;background:var(--accent);transition:width .25s linear}
+.timer.low i{background:var(--a)}
+.big{font-size:120px;font-weight:900;line-height:1;color:var(--accent);animation:pop .9s ease-out}
+@keyframes pop{0%{transform:scale(1.8);opacity:0}25%{opacity:1}100%{transform:scale(1)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.shake{animation:shake .3s}
+.cards{display:flex;gap:10px;justify-content:center;align-items:stretch;flex-wrap:wrap}
+.wc{flex:1;min-width:110px;max-width:200px;padding:16px 8px;border-radius:16px;color:#fff;animation:flip .6s ease-out both}
+.wc:nth-child(1){background:var(--a)}.wc:nth-child(2){background:var(--b)}.wc:nth-child(3){background:var(--ok)}.wc:nth-child(4){background:var(--warn);color:#3a2800}
+.wc small{display:block;opacity:.85;font-size:12px}
+.wc b{display:block;font-size:28px;word-break:break-all;margin-top:4px}
+.wc.none b{opacity:.6;font-size:20px}
+@keyframes flip{from{transform:rotateY(90deg) scale(.8);opacity:0}to{transform:none;opacity:1}}
+.won h2{font-size:30px;margin:0}
+.trophy{font-size:64px;animation:pop .8s}
+
+.chain h3{margin:0 0 8px;font-size:15px;color:var(--muted);font-weight:600}
+.link{display:flex;gap:8px;align-items:center;padding:8px 0;border-top:1px dashed var(--line);flex-wrap:wrap}
+.link:first-of-type{border-top:0}
+.link .n{font-size:12px;color:var(--muted);width:44px}
+.link .w{padding:2px 10px;border-radius:8px;background:rgba(124,92,255,.1);font-weight:600}
+.link .w.gone{opacity:.5}
+.link .eq{color:var(--ok);font-weight:700}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:50}
+#toast{position:fixed;left:50%;top:18px;transform:translateX(-50%);background:#2b2433;color:#fff;padding:10px 18px;border-radius:12px;z-index:60;font-size:14px;max-width:90vw;box-shadow:var(--shadow)}
+#conn{position:fixed;left:0;right:0;bottom:0;background:var(--warn);color:#3a2800;text-align:center;padding:6px;font-size:13px;z-index:70}
+.paused{background:rgba(245,165,36,.15);color:var(--warn);border-radius:10px;padding:8px;font-size:14px;margin-bottom:10px;text-align:center}
+</style>
+</head>
+<body>
+<canvas id="confetti"></canvas>
+<div id="toast" hidden></div>
+<div id="conn" hidden>连接中断,正在重连…</div>
+
+<main>
+  <!-- 首页 -->
+  <section id="home">
+    <h1>同词<span class="x">×</span>相遇</h1>
+    <p class="sub">数到 3、2、1,同时亮出一个词 —— 看你们的默契能不能「撞」在一起。</p>
+
+    <div class="card">
+      <label for="name">你的昵称</label>
+      <input id="name" type="text" maxlength="12" placeholder="给自己起个名字" autocomplete="off">
+      <div class="sep">开始游戏</div>
+      <button id="quick" style="width:100%">⚡ 快速匹配(随机遇到一位玩家)</button>
+      <button id="cancelQuick" class="ghost" style="width:100%" hidden>匹配中… 点击取消</button>
+      <div class="sep">或者和朋友玩</div>
+      <div class="row">
+        <button id="create" class="ghost">创建房间</button>
+        <div style="display:flex;gap:8px;flex:2">
+          <input id="roomIn" type="text" maxlength="4" placeholder="房间号" autocomplete="off" style="text-transform:uppercase;letter-spacing:4px;text-align:center">
+          <button id="join" style="flex:none">加入</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <b>玩法</b>
+      <ol class="rules">
+        <li>每轮各自悄悄写一个词,全员写好后一起数 3、2、1,同时亮出。</li>
+        <li>没撞上?下一轮写一个和<b>上一轮所有词</b>都相关的新词,<b>已用过的词不能再用</b>。</li>
+        <li>词完全相同即「相遇」;意思相同(冰箱 / 冰柜)则所有人点「意思相同」确认也算。</li>
+        <li>用的轮数越少越有默契,过程越离奇越好笑。</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- 大厅 -->
+  <section id="lobby" hidden>
+    <div class="bar"><span class="pill">等待玩家加入</span><button class="ghost small" data-leave>离开</button></div>
+    <div class="card">
+      <label style="text-align:center">房间号(把它或链接发给朋友)</label>
+      <div class="code" id="lobbyCode"></div>
+      <div class="row" style="margin:10px 0">
+        <button class="ghost small" id="copyCode">复制房间号</button>
+        <button class="ghost small" id="copyLink">复制邀请链接</button>
+      </div>
+      <div class="players" id="lobbyPlayers"></div>
+      <div style="margin-top:14px">
+        <button id="start" style="width:100%">开始游戏</button>
+        <p class="hint" id="startHint" style="text-align:center;margin:8px 0 0"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 游戏 -->
+  <section id="game" hidden>
+    <div class="bar">
+      <div><span class="pill" id="gRound"></span> <span class="pill" id="gCode"></span></div>
+      <button class="ghost small" data-leave>离开</button>
+    </div>
+    <div class="players" id="gPlayers"></div>
+    <div id="pausedBox" class="paused" hidden>有玩家掉线了,等待对方回来…</div>
+
+    <div class="card stage">
+      <!-- 写词 -->
+      <div id="pWrite" hidden>
+        <div class="hint" id="wHint"></div>
+        <div class="chips" id="wChips" style="margin:10px 0"></div>
+        <div class="timer" id="timer"><i></i></div>
+        <div class="row" style="margin-top:14px">
+          <input id="wordIn" type="text" maxlength="20" placeholder="写下你的词…" autocomplete="off" style="flex:3">
+          <button id="wordBtn" style="flex:1">锁定</button>
+        </div>
+        <p class="hint" id="wStatus" style="margin:10px 0 0"></p>
+      </div>
+      <!-- 倒计时 -->
+      <div id="pCount" hidden>
+        <div class="hint">大家都写好了…</div>
+        <div class="big" id="cNum"></div>
+      </div>
+      <!-- 亮词 -->
+      <div id="pReveal" hidden>
+        <div class="cards" id="rCards"></div>
+        <div id="rMsg" style="font-weight:700;font-size:18px;margin-top:6px"></div>
+        <p class="hint" style="margin:0">意思其实一样?(比如 冰箱 / 冰柜)<br>所有人都点「意思相同」就算相遇。</p>
+        <div class="row">
+          <button id="voteBtn" class="warn">🤝 意思相同</button>
+          <button id="nextBtn">继续下一轮 →</button>
+        </div>
+      </div>
+      <!-- 胜利 -->
+      <div id="pWon" class="won" hidden>
+        <div class="trophy">🎉</div>
+        <h2 id="wonTitle"></h2>
+        <div class="chips" id="wonWords"></div>
+        <div class="hint" id="wonSub"></div>
+        <div class="row">
+          <button id="rematch">再来一局</button>
+          <button class="ghost" data-leave>离开房间</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card chain" id="chainCard" hidden>
+      <h3>联想链(这些词已被用过,不能再说)</h3>
+      <div id="chain"></div>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+'use strict';
+const $ = (s) => document.querySelector(s);
+const store = {
+  get(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch{ return null; } },
+  set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch{} },
+};
+const sess = {
+  get(){ try{ return JSON.parse(sessionStorage.getItem('sess')); }catch{ return null; } },
+  set(v){ try{ v ? sessionStorage.setItem('sess',JSON.stringify(v)) : sessionStorage.removeItem('sess'); }catch{} },
+};
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+
+let ws, retries = 0, S = null, queueing = false, lastRound = -1, lastPhase = null, deadlineAt = 0, writeMs = 45000;
+
+// ---------- 网络 ----------
+function connect(){
+  ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host);
+  ws.onopen = () => {
+    retries = 0; $('#conn').hidden = true;
+    const s = sess.get();
+    if (s) send({ t:'resume', room:s.code, token:s.token });
+    else if (queueing) { queueing = false; render(); }
+  };
+  ws.onmessage = (e) => { let m; try{ m = JSON.parse(e.data); }catch{ return; } onMsg(m); };
+  ws.onclose = () => { $('#conn').hidden = false; setTimeout(connect, Math.min(5000, 400 * 2 ** retries++)); };
+}
+function send(m){ if (ws && ws.readyState === 1) ws.send(JSON.stringify(m)); }
+
+function onMsg(m){
+  switch (m.t) {
+    case 'joined': sess.set({ code:m.code, token:m.token }); queueing = false; break;
+    case 'state':
+      S = m; writeMs = m.writeMs; deadlineAt = performance.now() + m.leftMs; render(); break;
+    case 'queue': queueing = true; render(); break;
+    case 'left': sess.set(null); S = null; queueing = false; lastRound = -1; lastPhase = null; if (m.msg) toast(m.msg); render(); break;
+    case 'err':
+      toast(m.msg);
+      if (m.code === 'used') { const i = $('#wordIn'); i.classList.remove('shake'); void i.offsetWidth; i.classList.add('shake'); i.select(); }
+      break;
+    case 'toast': toast(m.msg); break;
+  }
+}
+
+let toastTimer;
+function toast(msg){
+  const t = $('#toast'); t.textContent = msg; t.hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.hidden = true, 2600);
+}
+
+// ---------- 渲染 ----------
+function show(id){ for (const s of ['home','lobby','game']) $('#'+s).hidden = s !== id; }
+
+function render(){
+  if (!S) {
+    show('home');
+    $('#quick').hidden = queueing; $('#cancelQuick').hidden = !queueing;
+    return;
+  }
+  if (S.phase === 'lobby') return renderLobby();
+  renderGame();
+}
+
+function playerPills(box, status){
+  box.replaceChildren();
+  for (const p of S.players) {
+    const d = el('div', 'pl' + (p.connected ? '' : ' off') + (p.id === S.you ? ' me' : ''));
+    d.append(el('span','dot'), el('span', null, p.name + (p.id === S.you ? '(你)' : '') + (p.id === S.host ? ' 👑' : '')));
+    if (status) { const s = status(p); if (s) d.append(el('span', 'st' + (s.good ? ' good' : ''), s.text)); }
+    box.append(d);
+  }
+}
+
+function renderLobby(){
+  show('lobby');
+  $('#lobbyCode').textContent = S.code;
+  playerPills($('#lobbyPlayers'));
+  const isHost = S.host === S.you, n = S.players.filter(p => p.connected).length;
+  $('#start').hidden = !isHost;
+  $('#start').disabled = n < 2;
+  $('#startHint').textContent = !isHost ? '等待房主开始游戏…' : n < 2 ? `还差玩家,至少 2 人(最多 ${S.maxPlayers} 人)` : '人齐了,开始吧!';
+}
+
+function renderGame(){
+  show('game');
+  const ph = S.phase, me = S.players.find(p => p.id === S.you) || {};
+  $('#gRound').textContent = ph === 'won' ? `用了 ${S.result.rounds} 轮` : `第 ${S.round} 轮`;
+  $('#gCode').textContent = '房间 ' + S.code;
+  $('#pausedBox').hidden = !S.paused;
+
+  playerPills($('#gPlayers'), (p) => {
+    if (ph === 'writing' || ph === 'countdown') return p.locked ? { text:'✓ 已锁定', good:true } : { text:'思考中…' };
+    if (ph === 'reveal') return p.voted ? { text:'🤝 认为相同', good:true } : p.cont ? { text:'已准备', good:true } : null;
+    if (ph === 'won') return p.ready ? { text:'想再来', good:true } : null;
+  });
+
+  for (const [id, on] of [['pWrite','writing'],['pCount','countdown'],['pReveal','reveal'],['pWon','won']]) $('#'+id).hidden = ph !== on;
+
+  // 新一轮:清输入框、重置按钮
+  if (ph === 'writing' && (S.round !== lastRound || lastPhase !== 'writing')) {
+    if (S.round !== lastRound || !me.locked) { $('#wordIn').value = ''; }
+    lastRound = S.round;
+  }
+  if (ph === 'writing') renderWrite(me);
+  if (ph === 'countdown') {
+    const c = $('#cNum');
+    if (c.dataset.n !== String(S.countdown)) { c.dataset.n = S.countdown; c.textContent = S.countdown; c.style.animation = 'none'; void c.offsetWidth; c.style.animation = ''; }
+  }
+  if (ph === 'reveal') renderReveal(me);
+  if (ph === 'won') renderWon(me);
+  if (ph === 'won' && lastPhase !== 'won') confetti();
+  lastPhase = ph;
+  renderChain();
+}
+
+function renderWrite(me){
+  const prev = S.history[S.history.length - 1];
+  const chips = $('#wChips'); chips.replaceChildren();
+  if (!prev) {
+    $('#wHint').textContent = '第一轮:随便写一个词,什么都行!';
+  } else {
+    $('#wHint').textContent = '想一个和这些词都有关联的新词(不能重复已用词):';
+    for (const e of prev.entries) if (e.word) chips.append(el('span','chip', e.word));
+  }
+  const locked = !!me.locked;
+  $('#wordIn').disabled = locked; $('#wordBtn').disabled = locked;
+  $('#wordBtn').textContent = locked ? '已锁定' : '锁定';
+  const waiting = S.players.filter(p => !p.locked && p.connected).length;
+  $('#wStatus').textContent = locked ? `已锁定,等待其他 ${waiting} 人…` : '锁定后其他人看不到你的词,直到一起亮出。';
+  if (!locked && lastPhase !== 'writing') setTimeout(() => $('#wordIn').focus(), 50);
+}
+
+function renderReveal(me){
+  const cards = $('#rCards'); cards.replaceChildren();
+  const cur = S.history[S.history.length - 1];
+  for (const p of S.players) {
+    const c = el('div', 'wc' + (p.word ? '' : ' none'));
+    c.append(el('small', null, p.name), el('b', null, p.word || '(未提交)'));
+    cards.append(c);
+  }
+  $('#rMsg').textContent = '没有相遇… 继续联想!';
+  const act = S.players.filter(p => p.connected);
+  const votes = act.filter(p => p.voted).length;
+  $('#voteBtn').textContent = `🤝 意思相同 (${votes}/${act.length})`;
+  $('#voteBtn').classList.toggle('ok', !!me.voted);
+  $('#voteBtn').disabled = !me.word;
+  const ready = act.filter(p => p.cont).length;
+  $('#nextBtn').disabled = !!me.cont;
+  $('#nextBtn').textContent = me.cont ? `等待其他人 (${ready}/${act.length})` : `继续下一轮 → (${ready}/${act.length})`;
+  void cur;
+}
+
+function renderWon(me){
+  const r = S.result;
+  $('#wonTitle').textContent = r.type === 'exact' ? '心有灵犀,相遇啦!' : '殊途同归,意思相同!';
+  const w = $('#wonWords'); w.replaceChildren();
+  r.words.forEach((x, i) => { if (i) w.append(el('span','hint','≈')); w.append(el('span','chip',x)); });
+  $('#wonSub').textContent = r.rounds === 1 ? '第一轮就撞上了,你们是双胞胎吗?!' : `一共联想了 ${r.rounds} 轮。`;
+  const ready = S.players.filter(p => p.ready).length, act = S.players.filter(p => p.connected).length;
+  $('#rematch').disabled = !!me.ready;
+  $('#rematch').textContent = me.ready ? `等待其他人 (${ready}/${act})` : '再来一局';
+}
+
+function renderChain(){
+  const box = $('#chain'); box.replaceChildren();
+  $('#chainCard').hidden = !S.history.length;
+  S.history.forEach((h, i) => {
+    const row = el('div', 'link');
+    row.append(el('span','n', '第'+h.round+'轮'));
+    h.entries.forEach((e, j) => {
+      if (j) row.append(el('span','hint','×'));
+      row.append(el('span','w' + (e.word ? '' : ' gone'), e.word || '—'));
+    });
+    if (S.phase === 'won' && i === S.history.length - 1) row.append(el('span','eq','✓ 相遇'));
+    box.append(row);
+  });
+}
+
+// 写词倒计时条
+setInterval(() => {
+  if (!S || S.phase !== 'writing') return;
+  const left = Math.max(0, deadlineAt - performance.now());
+  const t = $('#timer'); t.firstElementChild.style.width = (left / writeMs * 100) + '%';
+  t.classList.toggle('low', left < 10000);
+}, 200);
+
+// ---------- 交互 ----------
+const nameIn = $('#name');
+nameIn.value = store.get('name') || '';
+const myName = () => { const n = nameIn.value.trim() || '玩家' + Math.floor(Math.random()*900+100); store.set('name', n); nameIn.value = n; return n; };
+
+$('#quick').onclick = () => { queueing = true; render(); send({ t:'quick', name:myName() }); };
+$('#cancelQuick').onclick = () => { queueing = false; send({ t:'cancelQuick' }); render(); };
+$('#create').onclick = () => send({ t:'create', name:myName() });
+$('#join').onclick = () => { const r = $('#roomIn').value.trim(); if (r.length !== 4) return toast('请输入 4 位房间号'); send({ t:'join', room:r, name:myName() }); };
+$('#roomIn').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#join').click(); });
+$('#start').onclick = () => send({ t:'start' });
+document.addEventListener('click', (e) => { if (e.target.closest('[data-leave]')) { send({ t:'leave' }); sess.set(null); S = null; lastRound = -1; render(); } });
+const submitWord = () => { const v = $('#wordIn').value.trim(); if (v) send({ t:'word', word:v }); };
+$('#wordBtn').onclick = submitWord;
+$('#wordIn').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.isComposing) submitWord(); });
+$('#voteBtn').onclick = () => send({ t:'vote' });
+$('#nextBtn').onclick = () => send({ t:'next' });
+$('#rematch').onclick = () => send({ t:'rematch' });
+const copy = async (txt, ok) => { try{ await navigator.clipboard.writeText(txt); toast(ok); }catch{ toast(txt); } };
+$('#copyCode').onclick = () => copy(S.code, '房间号已复制');
+$('#copyLink').onclick = () => copy(location.origin + location.pathname + '?room=' + S.code, '邀请链接已复制');
+
+const qRoom = new URLSearchParams(location.search).get('room');
+if (qRoom) $('#roomIn').value = qRoom.slice(0,4).toUpperCase();
+
+// ---------- 彩带 ----------
+function confetti(){
+  const cv = $('#confetti'), ctx = cv.getContext('2d');
+  cv.width = innerWidth; cv.height = innerHeight;
+  const cols = ['#ff6b6b','#4d96ff','#2fbf71','#f5a524','#7c5cff'];
+  const ps = Array.from({ length: 140 }, () => ({
+    x: Math.random()*cv.width, y: -20 - Math.random()*cv.height*.5, r: 4+Math.random()*5,
+    vy: 2+Math.random()*4, vx: -1.5+Math.random()*3, c: cols[Math.random()*cols.length|0], a: Math.random()*6,
+  }));
+  let f = 0;
+  (function tick(){
+    ctx.clearRect(0,0,cv.width,cv.height);
+    for (const p of ps) { p.x += p.vx; p.y += p.vy; p.a += .1; ctx.fillStyle = p.c; ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.a); ctx.fillRect(-p.r,-p.r/2,p.r*2,p.r); ctx.restore(); }
+    if (++f < 200) requestAnimationFrame(tick); else ctx.clearRect(0,0,cv.width,cv.height);
+  })();
+}
+
+render();
+connect();
+})();
+</script>
+</body>
+</html>
